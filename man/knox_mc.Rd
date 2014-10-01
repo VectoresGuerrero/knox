@@ -10,7 +10,7 @@ Knox Test for space-time interaction with Monte Carlo simulation
 \usage{
 knox_mc(x,y,time,sigma,tau,perm)}
 \arguments{
-\item{x}{Longtitude - should be projected to a planar system} 
+\item{x}{Longitude - should be projected to a planar system} 
 \item{y}{Latitude - should be projected to a planar system}
 \item{time}{time}
 \item{sigma}{A defined threshold in space distance}

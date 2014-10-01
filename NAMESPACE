@@ -1,0 +1,2 @@
+useDynLib(knox)
+exportPattern("^[[:alpha:]]+")

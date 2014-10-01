@@ -1,4 +1,4 @@
 knox
 ====
 
-A small package of using knox test for space-time interaction
+A small R package written in C++ with Rcpp, RcppArmadillo for Knox test

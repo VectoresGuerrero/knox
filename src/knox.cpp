@@ -7,6 +7,19 @@ using namespace Rcpp;
 //http://stackoverflow.com/questions/24253228/performance-of-r-statssd-vs-armastddev-vs-rcpp-implementation
 double armaSD2(const arma::colvec & inVec) { return arma::stddev(inVec); }
 
+//' @rdname knox
+//' @title Original Knox test
+//' @description Original Knox test
+//' @param x Longitude, should be projected to a planar system.
+//' @param y Latitude, should be projected to a planar system.
+//' @param time time column.
+//' @param sigma a distance in space.
+//' @param tau a distance in time.
+//' @return A knox statistic, which is the number of pairs of points found in a given space-time distance.
+//' @references \strong{Knox, E. (1964)}. \emph{The detection of space-time interactions.} Journal of the Royal Statistical Society. Series C (13(1), 25-30.
+//' 
+//' \strong{Tango, T. (2010)}. \emph{Statistical methods for disease clustering. Springer.}
+//' @export
 // [[Rcpp::export]]
 List knox(NumericVector x, NumericVector y, NumericVector time, double sigma, double tau){
   int nx = x.size();
@@ -21,37 +34,12 @@ List knox(NumericVector x, NumericVector y, NumericVector time, double sigma, do
     for (int j=0; j<nx; j++){
       sdist(i,j)= sqrt(pow(x[j]-x[i],2)+pow(y[j]-y[i],2));
       tdist(i,j)=abs(time[i]-time[j]);
-      //      if(sdist(i,j)<= sigma){
-      //        as(i,j)=1;
-      //      }
       if (i !=j){
         as(i,j) = (sdist(i,j)<= sigma) ? 1 : 0;
         at(i,j) = (tdist(i,j)<= tau) ? 1 : 0;
       }
-      
-      //      if(tdist(i,j)<= tau){
-      //        at(i,j)=1;
-      //      }
     }
   }
-  //    for(int i=0;i<nx;i++){
-  //      for(int j=0;j<nx;j++){
-  //        if(sdist(i,j)<= sigma){
-  //          as(i,j)=1;
-  //        } 
-  //        else { 
-  //          as(i,j)=0;
-  //        }
-  //        if(tdist(i,j)<= tau){
-  //          at(i,j)=1;
-  //        }
-  //        else {
-  //          at(i,j)=0;
-  //        }
-  //      }
-  //      as(i,i)=0;
-  //      at(i,i)=0;
-  //    }
   s1 = 0;
   for(int i=0;i<nx;++i){
     for(int j=0;j<nx;++j){
@@ -64,6 +52,19 @@ List knox(NumericVector x, NumericVector y, NumericVector time, double sigma, do
     );
 }
 
+//' @rdname knox_simulation 
+//' @title Knox test with Monte Carlo simulation
+//' @description Performing Knox statistics with Monte Carlo simulation
+//' @param x Longitude, should be projected to a planar system.
+//' @param y Latitude, should be projected to a planar system.
+//' @param time time column.
+//' @param sigma a distance in space.
+//' @param tau a distance in time.
+//' @param perm Number of simulations. Default is 999
+//' @return \item{knox}{Knox statistic, which is the number of pairs of points found in a given space-time distance.} 
+//' \item{p_value}{p-value calculated from simulation} 
+//' \item{RR}{Relative Risk - calculated by observed value (Knox statistics) divided by mean of simulated values}
+//' @export
 // [[Rcpp::export]]
 List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma, double tau,int perm=999){
   RNGScope scope;//Initiate to get sample function from R
@@ -74,9 +75,8 @@ List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma,
   NumericMatrix tdist(nx,nx);
   NumericMatrix as(nx,nx);
   NumericMatrix at(nx,nx);
-  //  NumericMatrix atmont(nx,nx);
-  int perm1 = perm + 1;
-  double ktmont[perm1];
+  int perm1 = perm + 1; //Normally 999 interations + 1 which is real obs Knox value to get 1000. Since then p_value is calculated easier
+  double ktmont[perm1]; //Create an C++ array for simulated Knox value
   double s1,obs,p_value;
   double sum_perm=0;
   NumericVector timeR(nx);
@@ -85,37 +85,12 @@ List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma,
     for (int j=0; j<nx; j++){
       sdist(i,j)= sqrt(pow(x[j]-x[i],2)+pow(y[j]-y[i],2));
       tdist(i,j)=abs(time[i]-time[j]);
-//      if(sdist(i,j)<= sigma){
-//        as(i,j)=1;
-//      }
       if (i!=j){
       as(i,j) = (sdist(i,j)<= sigma) ? 1 : 0; //this saved my life
       at(i,j) = (tdist(i,j)<= tau) ? 1 : 0;  
       }
-//      if(tdist(i,j)<= tau){
-//        at(i,j)=1;
-//      }
     }
   }
-  //naive loop and condition
-  //  for(int i=0;i<nx;i++){
-  //    for(int j=0;j<nx;j++){
-  //      if(sdist(i,j)<= sigma){
-  //        as(i,j)=1;
-  //      } 
-  //      else { 
-  //        as(i,j)=0;
-  //      }
-  //      if(tdist(i,j)<= tau){
-  //        at(i,j)=1;
-  //      }
-  //      else {
-  //        at(i,j)=0;
-  //      }
-  //    }
-  //    as(i,i)=0;
-  //    at(i,i)=0;
-  //  }
   s1 = 0;
   for(int i=0;i<nx;++i){
     for(int j=0;j<nx;++j){
@@ -128,26 +103,13 @@ List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma,
     std::fill(at.begin(),at.end(),0);
     timeR = sample(time);
     for(int i=0;i<nx;++i)
-    for (int j=0; j<nx;++j){
+    for (int j=0;j<nx;++j){
       tdist(i,j)=abs(timeR[i]-timeR[j]);
-      //      if(tdist(i,j)<= tau){
-      //        at(i,j)=1;
-      //      }
       if (i!=j){
         at(i,j) = (tdist(i,j)<= tau) ? 1 : 0;  
       }
       
     }
-    //    for(int i=0;i<nx;++i){
-    //      for(int j=0;j<nx;++j){
-    //        if(tdist(i,j)<= tau){
-    //        at(i,j)=1;
-    //      } else {
-    //        at(i,j)=0;
-    //      }
-    //    }
-    //    at(i,i)=0;
-    //  }
     s1=0;
     for(int i=0;i<nx;++i)
     for(int j=0;j<nx;++j){
@@ -157,10 +119,10 @@ List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma,
     sum_perm += ktmont[k];
   }//End of Monte Carlo Simulation
   
-  ktmont[perm]=obs;
+  ktmont[perm1]=obs;
   
   double countm=0;
-  for(int i=0;i<perm1;i++){
+  for(int i=0;i<perm;i++){
     if(ktmont[i]>=obs){
       ++countm;
     }
@@ -173,7 +135,6 @@ List knox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma,
     _["p_value"]=p_value,
     _["RR"]=rr
     );
-    //return ktmont;
 }
 
 
@@ -187,7 +148,6 @@ List iknox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma
   NumericMatrix tdist(nx,nx);
   NumericMatrix as(nx,nx);
   NumericMatrix at(nx,nx);
-  //  NumericMatrix atmont(nx,nx);
   int perm1 = perm + 1;
   NumericVector ktmont(perm1);
   double s1,obs,p_value;
@@ -241,7 +201,7 @@ List iknox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma
   }
   //P value
   p_value = countm/perm1;
-  //calculate sd using arma lib as it results faster than standard one.
+  //calculate sd using arma lib as its results faster than standard one.
   double sd = armaSD2(ktmont);
   double mean_sum_perm = sum_perm/perm;
   //Knox statistics standardized
@@ -256,7 +216,17 @@ List iknox_mc(NumericVector x, NumericVector y, NumericVector time, double sigma
     );
 }
 
-
+//' @rdname st_links
+//' @title space-time link
+//' @description Create space-time links between two points from a given space and time distance.
+//' @param x Longitude - should be projected to a planar system.
+//' @param y Latitude - should be projected to a plannar system.
+//' @param time time
+//' @param ds a distance in space.
+//' @param dt a distance in time.
+//' @return A data frame with \item{Xo, Yo}{ X, Y of the starting point}
+//' \item{Xd, Yd}{ X, Y of the ending point}
+//' @export
 //[[Rcpp::export]]
 DataFrame st_link(NumericVector x, NumericVector y, NumericVector time, double ds, double dt){
   int nx = x.size();
@@ -269,22 +239,12 @@ DataFrame st_link(NumericVector x, NumericVector y, NumericVector time, double d
     sdist(i,j)= sqrt(pow(x[j]-x[i],2)+pow(y[j]-y[i],2));
     tdist(i,j)=abs(time[i]-time[j]);
     if(j>i && sdist(i,j) <= ds && tdist(i,j) <=dt){
-      xo.push_back(x(i));        
+      xo.push_back(x(i));
       yo.push_back(y(i));
       xd.push_back(x(j));
       yd.push_back(y(j));
     }
   }
-  //  for (int i=0;i<nx;++i){
-  //    for(int j=0;j<nx;++j){
-  //      if(j>i && sdist(i,j) <= ds && tdist(i,j) <=dt){
-  //        xo.push_back(x(i));        
-  //        yo.push_back(y(i));
-  //        xd.push_back(x(j));
-  //        yd.push_back(y(j));
-  //      }
-  //    }
-  //  }
   return DataFrame::create(Named("Xo")=xo,Named("Yo")=yo,
   Named("Xd")=xd,Named("Yd")=yd);
 }

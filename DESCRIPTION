@@ -7,5 +7,6 @@ Author: Thanh Le Viet
 Maintainer: Thanh Le Viet <lethanhx2k@gmail.com>
 Description: Knox test for space-time interaction
 License: GPL (>= 2)
-Imports: Rcpp (>= 0.11.3), RcppArmadillo
-LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp (>= 0.11.3), RcppArmadillo, sp, rgdal
+LinkingTo: Rcpp, RcppArmadillo, sp, rgdal
+Suggests: testthat
